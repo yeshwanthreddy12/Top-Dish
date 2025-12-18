@@ -1,0 +1,153 @@
+import { llmService } from './llmService'
+
+const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY
+
+/**
+ * Fetch restaurant data and reviews from Google Places API
+ */
+export async function fetchRestaurantReviews(restaurantName) {
+  if (!GOOGLE_PLACES_API_KEY) {
+    throw new Error('Google Places API key is not configured. Please add VITE_GOOGLE_PLACES_API_KEY to your environment variables.')
+  }
+
+  try {
+    // Step 1: Search for the restaurant
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(restaurantName)}&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`
+    
+    const searchResponse = await fetch(searchUrl)
+    const searchData = await searchResponse.json()
+
+    if (searchData.status !== 'OK' || !searchData.results || searchData.results.length === 0) {
+      throw new Error('Restaurant not found. Please try a more specific name or location.')
+    }
+
+    const place = searchData.results[0]
+    const placeId = place.place_id
+
+    // Step 2: Get place details including reviews
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,reviews,rating,user_ratings_total&key=${GOOGLE_PLACES_API_KEY}`
+    
+    const detailsResponse = await fetch(detailsUrl)
+    const detailsData = await detailsResponse.json()
+
+    if (detailsData.status !== 'OK' || !detailsData.result) {
+      throw new Error('Failed to fetch restaurant details.')
+    }
+
+    const restaurantData = detailsData.result
+    const reviews = restaurantData.reviews || []
+
+    if (reviews.length === 0) {
+      throw new Error('No reviews found for this restaurant.')
+    }
+
+    // Extract categories from reviews using LLM
+    const categories = await extractCategoriesFromReviews(reviews)
+
+    return {
+      restaurant: {
+        name: restaurantData.name,
+        address: restaurantData.formatted_address,
+        rating: restaurantData.rating,
+        totalRatings: restaurantData.user_ratings_total
+      },
+      reviews: reviews.map(review => ({
+        text: review.text,
+        rating: review.rating,
+        author: review.author_name,
+        time: review.time
+      })),
+      categories
+    }
+  } catch (error) {
+    if (error.message) {
+      throw error
+    }
+    throw new Error('Failed to fetch restaurant data. Please check your API key and try again.')
+  }
+}
+
+/**
+ * Extract dish categories from reviews using LLM
+ */
+async function extractCategoriesFromReviews(reviews) {
+  const reviewTexts = reviews.slice(0, 10).map(r => r.text).join('\n\n')
+  
+  const prompt = `Analyze the following restaurant reviews and extract unique dish categories mentioned (e.g., Appetizers, Main Courses, Desserts, Pizza, Pasta, Seafood, etc.). 
+Return only a JSON array of category names, nothing else.
+
+Reviews:
+${reviewTexts}`
+
+  try {
+    const response = await llmService.generate(prompt)
+    // Try to parse JSON from response
+    const jsonMatch = response.match(/\[.*\]/s)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    // Fallback to default categories
+    return []
+  } catch (error) {
+    console.error('Error extracting categories:', error)
+    return []
+  }
+}
+
+/**
+ * Analyze reviews to find top dishes using LLM
+ */
+export async function analyzeTopDishes(reviews, categories) {
+  if (!reviews || reviews.length === 0) {
+    throw new Error('No reviews available for analysis.')
+  }
+
+  // Combine review texts
+  const reviewTexts = reviews.map((r, i) => `Review ${i + 1} (Rating: ${r.rating}/5):\n${r.text}`).join('\n\n')
+
+  const prompt = `Analyze the following restaurant reviews and identify the top 2 most mentioned and highly rated dishes in the categories: ${categories.join(', ')}.
+
+For each dish, provide:
+- The exact dish name as mentioned in reviews
+- The category it belongs to
+- A brief description based on what reviewers said
+- How many times it was mentioned
+
+Return the results as a JSON array with this exact format:
+[
+  {
+    "name": "Dish Name",
+    "category": "Category Name",
+    "description": "Brief description from reviews",
+    "mentions": number
+  }
+]
+
+Reviews:
+${reviewTexts}
+
+Return ONLY the JSON array, no additional text.`
+
+  try {
+    const response = await llmService.generate(prompt)
+    
+    // Extract JSON from response
+    const jsonMatch = response.match(/\[[\s\S]*\]/s)
+    if (jsonMatch) {
+      const dishes = JSON.parse(jsonMatch[0])
+      // Ensure we return top 2 dishes
+      return dishes.slice(0, 2).map((dish, index) => ({
+        ...dish,
+        rank: index + 1
+      }))
+    }
+    
+    throw new Error('Failed to parse dish data from AI response.')
+  } catch (error) {
+    if (error.message.includes('parse')) {
+      throw error
+    }
+    throw new Error('Failed to analyze dishes. Please try again.')
+  }
+}
+
