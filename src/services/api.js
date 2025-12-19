@@ -14,23 +14,47 @@ function getGooglePlacesApiKey() {
 
 const GOOGLE_PLACES_API_KEY = getGooglePlacesApiKey()
 
+// Debug helper (only in development)
+if (import.meta.env.DEV) {
+  console.log('Google Places API Key loaded:', GOOGLE_PLACES_API_KEY ? 'Yes (length: ' + GOOGLE_PLACES_API_KEY.length + ')' : 'No')
+}
+
 /**
  * Fetch restaurant data and reviews from Google Places API
  */
 export async function fetchRestaurantReviews(restaurantName) {
-  if (!GOOGLE_PLACES_API_KEY) {
-    throw new Error('Google Places API key is not configured. Please add VITE_GOOGLE_PLACES_API_KEY to your environment variables.')
+  if (!GOOGLE_PLACES_API_KEY || GOOGLE_PLACES_API_KEY.trim() === '') {
+    throw new Error('Google Places API key is not configured. Please check your .env file or config.js')
   }
 
   try {
     // Step 1: Search for the restaurant
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(restaurantName)}&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`
     
-    const searchResponse = await fetch(searchUrl)
+    let searchResponse
+    try {
+      searchResponse = await fetch(searchUrl)
+    } catch (fetchError) {
+      console.error('Network error:', fetchError)
+      throw new Error('Network error: Unable to connect to Google Places API. Please check your internet connection.')
+    }
+
+    if (!searchResponse.ok) {
+      throw new Error(`API request failed with status ${searchResponse.status}. Please check your API key.`)
+    }
+
     const searchData = await searchResponse.json()
 
+    if (searchData.status === 'REQUEST_DENIED') {
+      throw new Error('API request denied. Please check your Google Places API key and ensure the Places API is enabled.')
+    }
+    
+    if (searchData.status === 'OVER_QUERY_LIMIT') {
+      throw new Error('API quota exceeded. Please try again later or check your Google Cloud billing.')
+    }
+
     if (searchData.status !== 'OK' || !searchData.results || searchData.results.length === 0) {
-      throw new Error('Restaurant not found. Please try a more specific name or location.')
+      throw new Error('Restaurant not found. Please try a more specific name or include the city (e.g., "McDonald\'s, New York").')
     }
 
     const place = searchData.results[0]
@@ -39,7 +63,18 @@ export async function fetchRestaurantReviews(restaurantName) {
     // Step 2: Get place details including reviews
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,reviews,rating,user_ratings_total&key=${GOOGLE_PLACES_API_KEY}`
     
-    const detailsResponse = await fetch(detailsUrl)
+    let detailsResponse
+    try {
+      detailsResponse = await fetch(detailsUrl)
+    } catch (fetchError) {
+      console.error('Network error:', fetchError)
+      throw new Error('Network error: Unable to fetch restaurant details. Please check your internet connection.')
+    }
+
+    if (!detailsResponse.ok) {
+      throw new Error(`Failed to fetch restaurant details (status ${detailsResponse.status}). Please try again.`)
+    }
+
     const detailsData = await detailsResponse.json()
 
     if (detailsData.status !== 'OK' || !detailsData.result) {
@@ -72,10 +107,19 @@ export async function fetchRestaurantReviews(restaurantName) {
       categories
     }
   } catch (error) {
-    if (error.message) {
+    // Re-throw our custom errors
+    if (error.message && (
+      error.message.includes('API key') ||
+      error.message.includes('Network error') ||
+      error.message.includes('not found') ||
+      error.message.includes('denied') ||
+      error.message.includes('quota')
+    )) {
       throw error
     }
-    throw new Error('Failed to fetch restaurant data. Please check your API key and try again.')
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    throw new Error(`Failed to fetch restaurant data: ${error.message || 'Unknown error'}. Please check your API key and try again.`)
   }
 }
 

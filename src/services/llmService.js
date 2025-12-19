@@ -20,6 +20,12 @@ const HUGGINGFACE_API_KEY = getConfigValue('HUGGINGFACE_API_KEY')
 const OPENAI_API_KEY = getConfigValue('OPENAI_API_KEY')
 const LLM_PROVIDER = getConfigValue('LLM_PROVIDER') || 'huggingface'
 
+// Debug helper (only in development)
+if (import.meta.env.DEV) {
+  console.log('Hugging Face API Key loaded:', HUGGINGFACE_API_KEY ? 'Yes (length: ' + HUGGINGFACE_API_KEY.length + ')' : 'No')
+  console.log('LLM Provider:', LLM_PROVIDER)
+}
+
 /**
  * Main LLM service interface
  */
@@ -40,41 +46,59 @@ export const llmService = {
  * Model: meta-llama/Llama-2-7b-chat-hf or mistralai/Mistral-7B-Instruct-v0.2
  */
 async function generateWithHuggingFace(prompt) {
-  if (!HUGGINGFACE_API_KEY) {
-    throw new Error('Hugging Face API key is not configured. Please add VITE_HUGGINGFACE_API_KEY to your environment variables. Get a free key at https://huggingface.co/settings/tokens')
+  if (!HUGGINGFACE_API_KEY || HUGGINGFACE_API_KEY.trim() === '') {
+    throw new Error('Hugging Face API key is not configured. Please check your .env file or config.js. Get a free key at https://huggingface.co/settings/tokens')
   }
 
   // Using a free model that supports instruction following
   const model = 'mistralai/Mistral-7B-Instruct-v0.2'
   
   try {
-    const response = await fetch(
-      `https://api-inference.huggingface.co/models/${model}`,
-      {
-        headers: {
-          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 500,
-            temperature: 0.7,
-            return_full_text: false
-          }
-        }),
-      }
-    )
+    let response
+    try {
+      response = await fetch(
+        `https://api-inference.huggingface.co/models/${model}`,
+        {
+          headers: {
+            Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 500,
+              temperature: 0.7,
+              return_full_text: false
+            }
+          }),
+        }
+      )
+    } catch (fetchError) {
+      console.error('Network error:', fetchError)
+      throw new Error('Network error: Unable to connect to Hugging Face API. Please check your internet connection.')
+    }
 
     if (!response.ok) {
-      const error = await response.json()
+      let errorData
+      try {
+        errorData = await response.json()
+      } catch (e) {
+        errorData = { error: `HTTP ${response.status}` }
+      }
+      
       if (response.status === 503) {
-        // Model is loading, wait and retry
+        // Model is loading, wait and retry once
+        console.log('Model is loading, waiting 5 seconds...')
         await new Promise(resolve => setTimeout(resolve, 5000))
         return generateWithHuggingFace(prompt)
       }
-      throw new Error(error.error || 'Failed to generate response from Hugging Face')
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Invalid Hugging Face API key. Please check your API key in .env or config.js')
+      }
+      
+      throw new Error(errorData.error || `Failed to generate response from Hugging Face (status ${response.status})`)
     }
 
     const data = await response.json()
@@ -89,10 +113,17 @@ async function generateWithHuggingFace(prompt) {
 
     throw new Error('Unexpected response format from Hugging Face')
   } catch (error) {
-    if (error.message) {
+    // Re-throw our custom errors
+    if (error.message && (
+      error.message.includes('API key') ||
+      error.message.includes('Network error') ||
+      error.message.includes('Invalid')
+    )) {
       throw error
     }
-    throw new Error('Failed to connect to Hugging Face API. Please check your API key and try again.')
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    throw new Error(`Failed to connect to Hugging Face API: ${error.message || 'Unknown error'}. Please check your API key and try again.`)
   }
 }
 
