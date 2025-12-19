@@ -87,10 +87,14 @@
   margin: 0 auto;
 }
 
+.input-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
 .input-group {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
 }
 
 .restaurant-input-field {
@@ -162,6 +166,50 @@
   font-size: 1rem;
 }
 
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #667eea;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.suggestion-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover,
+.suggestion-item.selected {
+  background-color: #f0f4ff;
+}
+
+.suggestion-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.suggestion-address {
+  font-size: 0.85rem;
+  color: #666;
+}
+
 @media (max-width: 768px) {
   .input-group {
     flex-direction: column;
@@ -169,6 +217,13 @@
   
   .restaurant-input h2 {
     font-size: 1.5rem;
+  }
+
+  .suggestions-dropdown {
+    position: relative;
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    margin-top: 10px;
   }
 }
 
