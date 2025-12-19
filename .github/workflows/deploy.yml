@@ -44,8 +44,20 @@ jobs:
           ls -la dist/config.js
           echo "First few lines of config.js:"
           head -5 dist/config.js
-          echo "Checking if file exists in dist:"
-          find dist -name "config.js" -type f
+
+      - name: Verify build output
+        run: |
+          echo "=== Contents of dist/ ==="
+          ls -la dist/
+          echo ""
+          echo "=== Contents of dist/index.html ==="
+          cat dist/index.html
+          echo ""
+          echo "=== Checking for config.js ==="
+          ls -la dist/config.js || echo "config.js NOT FOUND!"
+          echo ""
+          echo "=== Checking for assets ==="
+          ls -la dist/assets/ || echo "assets folder NOT FOUND!"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
