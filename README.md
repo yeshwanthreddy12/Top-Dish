@@ -2,6 +2,8 @@
 
 Discover the most loved dishes at any restaurant by analyzing Google reviews with AI.
 
+---
+
 ## Features
 
 - 🔍 Search any restaurant by name
