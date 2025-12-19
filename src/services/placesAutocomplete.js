@@ -28,14 +28,33 @@ export async function getAutocompleteSuggestions(input) {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=establishment&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`
     
-    const response = await fetch(url)
+    let response
+    try {
+      response = await fetch(url)
+    } catch (fetchError) {
+      console.error('Network error fetching autocomplete:', fetchError)
+      return []
+    }
     
     if (!response.ok) {
       console.error('Autocomplete API error:', response.status)
+      const errorText = await response.text()
+      console.error('Error response:', errorText)
       return []
     }
 
     const data = await response.json()
+
+    if (data.status === 'REQUEST_DENIED') {
+      console.error('Google Places API request denied. Check if Places API is enabled and API key is valid.')
+      console.error('Error message:', data.error_message || 'No error message')
+      return []
+    }
+
+    if (data.status === 'OVER_QUERY_LIMIT') {
+      console.error('Google Places API quota exceeded')
+      return []
+    }
 
     if (data.status === 'OK' && data.predictions) {
       return data.predictions.map(prediction => ({
@@ -45,6 +64,10 @@ export async function getAutocompleteSuggestions(input) {
         description: prediction.description,
         placeId: prediction.place_id
       }))
+    }
+
+    if (data.status && data.status !== 'ZERO_RESULTS') {
+      console.warn('Autocomplete API returned status:', data.status, data.error_message || '')
     }
 
     return []

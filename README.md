@@ -137,14 +137,47 @@ Top-Dish/
 
 ## Troubleshooting
 
+### "Unable to connect to Google Places API" or "API request denied"
+
+**Common causes and solutions:**
+
+1. **Places API not enabled:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Navigate to "APIs & Services" → "Library"
+   - Search for "Places API" and click "Enable"
+   - Also enable "Places API (New)" if available
+
+2. **API key restrictions:**
+   - Go to "APIs & Services" → "Credentials"
+   - Click on your API key
+   - Under "API restrictions", make sure "Places API" is allowed
+   - Under "Application restrictions", if set to "HTTP referrers", add your domain:
+     - For local: `http://localhost:*`
+     - For production: `https://yeshwanthreddy12.github.io/*`
+
+3. **Invalid API key:**
+   - Verify your API key in `.env` file matches the one in Google Cloud Console
+   - Make sure there are no extra spaces or quotes
+
+4. **Check browser console:**
+   - Open DevTools (F12) → Console tab
+   - Look for specific error messages from Google Places API
+   - Check if API key is loaded: Should see "Google Places API Key loaded: Yes"
+
 ### "Restaurant not found"
 - Try including the city/state in the restaurant name
+- Use the autocomplete dropdown for better results
 - Ensure your Google Places API key is valid and has the Places API enabled
 
 ### "Failed to analyze dishes"
-- Check your LLM API key (Hugging Face or OpenAI)
-- For Hugging Face, the model might be loading (first request can take time)
+- Check your LLM API key (OpenAI or Hugging Face)
+- For OpenAI, verify your API key has credits
 - Check browser console for detailed error messages
+
+### Autocomplete not working
+- Ensure Places API is enabled (see above)
+- Check browser console for API errors
+- Verify API key is correctly configured in `.env` or `config.js`
 
 ### Build fails on GitHub Actions
 - Ensure all secrets are set correctly
