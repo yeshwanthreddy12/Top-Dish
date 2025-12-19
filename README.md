@@ -19,7 +19,7 @@ Discover the most loved dishes at any restaurant by analyzing Google reviews wit
 
 - Node.js 18+ installed
 - Google Places API key ([Get one here](https://developers.google.com/maps/documentation/places/web-service/get-api-key))
-- Hugging Face API key ([Get a free one here](https://huggingface.co/settings/tokens)) or OpenAI API key
+- OpenAI API key ([Get one here](https://platform.openai.com/api-keys)) or Hugging Face API key ([Get a free one here](https://huggingface.co/settings/tokens))
 
 ### Installation
 
@@ -37,14 +37,14 @@ npm install
 3. Create a `.env` file in the root directory:
 ```env
 VITE_GOOGLE_PLACES_API_KEY=your_google_places_api_key
-VITE_HUGGINGFACE_API_KEY=your_huggingface_api_key
-VITE_LLM_PROVIDER=huggingface
-```
-
-**Optional:** To use OpenAI instead:
-```env
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_LLM_PROVIDER=openai
+```
+
+**Optional:** To use Hugging Face instead:
+```env
+VITE_HUGGINGFACE_API_KEY=your_huggingface_api_key
+VITE_LLM_PROVIDER=huggingface
 ```
 
 4. Run the development server:
@@ -60,7 +60,7 @@ npm run dev
    - Go to your repository Settings → Secrets and variables → Actions
    - Add the following secrets:
      - `GOOGLE_PLACES_API_KEY`: Your Google Places API key
-     - `HUGGINGFACE_API_KEY`: Your Hugging Face API key (or `OPENAI_API_KEY` if using OpenAI)
+     - `OPENAI_API_KEY`: Your OpenAI API key (or `HUGGINGFACE_API_KEY` if using Hugging Face)
 
 2. **Update repository name in `vite.config.js`:**
    - Change `base: '/Top-Dish/'` to match your repository name
@@ -92,16 +92,18 @@ npm run dev
 
 The app supports multiple LLM providers through an abstraction layer:
 
-### Hugging Face (Free Tier)
+### OpenAI (Default)
 - Default provider
-- Uses Mistral-7B-Instruct model
-- Free tier available
-- Set `VITE_LLM_PROVIDER=huggingface`
-
-### OpenAI
-- More reliable and faster
-- Requires paid API key
+- Uses GPT-3.5-turbo model
+- More reliable and faster responses
+- Requires paid API key (very affordable)
 - Set `VITE_LLM_PROVIDER=openai` and provide `VITE_OPENAI_API_KEY`
+
+### Hugging Face (Free Tier)
+- Alternative free option
+- Uses Mistral-7B-Instruct model
+- Free tier available but may be slower
+- Set `VITE_LLM_PROVIDER=huggingface` and provide `VITE_HUGGINGFACE_API_KEY`
 
 ## Project Structure
 
@@ -130,8 +132,8 @@ Top-Dish/
 ## API Costs
 
 - **Google Places API**: Pay-as-you-go, but has a free tier ($200 credit/month)
-- **Hugging Face**: Free tier available
-- **OpenAI**: Pay-per-use (GPT-3.5-turbo is very affordable)
+- **OpenAI**: Pay-per-use (GPT-3.5-turbo is very affordable, ~$0.001 per request)
+- **Hugging Face**: Free tier available (slower, may have rate limits)
 
 ## Troubleshooting
 

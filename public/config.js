@@ -4,8 +4,8 @@
 // The app will fall back to environment variables (.env file) if keys are empty
 window.APP_CONFIG = {
   GOOGLE_PLACES_API_KEY: '',
-  HUGGINGFACE_API_KEY: '',
-  LLM_PROVIDER: 'huggingface'
+  OPENAI_API_KEY: '',
+  LLM_PROVIDER: 'openai'
 };
 
 

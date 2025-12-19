@@ -39,8 +39,8 @@ jobs:
           cat > dist/config.js << EOF
           window.APP_CONFIG = {
             GOOGLE_PLACES_API_KEY: '${{ secrets.GOOGLE_PLACES_API_KEY }}',
-            HUGGINGFACE_API_KEY: '${{ secrets.HUGGINGFACE_API_KEY }}',
-            LLM_PROVIDER: 'huggingface'
+            OPENAI_API_KEY: '${{ secrets.OPENAI_API_KEY }}',
+            LLM_PROVIDER: 'openai'
           };
           EOF
           echo "Config file created. Verifying..."

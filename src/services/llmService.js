@@ -1,7 +1,7 @@
 /**
  * LLM Service - Abstraction layer for different LLM providers
- * Currently supports Hugging Face Inference API (free tier)
- * Easily extensible to OpenAI
+ * Currently uses OpenAI by default
+ * Easily extensible to other providers
  */
 
 // Get API keys from runtime config, localStorage, or build-time env
@@ -18,11 +18,11 @@ function getConfigValue(key, defaultValue = '') {
 
 const HUGGINGFACE_API_KEY = getConfigValue('HUGGINGFACE_API_KEY')
 const OPENAI_API_KEY = getConfigValue('OPENAI_API_KEY')
-const LLM_PROVIDER = getConfigValue('LLM_PROVIDER') || 'huggingface'
+const LLM_PROVIDER = getConfigValue('LLM_PROVIDER') || 'openai'
 
 // Debug helper (only in development)
 if (import.meta.env.DEV) {
-  console.log('Hugging Face API Key loaded:', HUGGINGFACE_API_KEY ? 'Yes (length: ' + HUGGINGFACE_API_KEY.length + ')' : 'No')
+  console.log('OpenAI API Key loaded:', OPENAI_API_KEY ? 'Yes (length: ' + OPENAI_API_KEY.length + ')' : 'No')
   console.log('LLM Provider:', LLM_PROVIDER)
 }
 
@@ -32,11 +32,11 @@ if (import.meta.env.DEV) {
 export const llmService = {
   async generate(prompt) {
     switch (LLM_PROVIDER) {
-      case 'openai':
-        return await generateWithOpenAI(prompt)
       case 'huggingface':
-      default:
         return await generateWithHuggingFace(prompt)
+      case 'openai':
+      default:
+        return await generateWithOpenAI(prompt)
     }
   }
 }
