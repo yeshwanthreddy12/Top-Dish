@@ -32,25 +32,49 @@ export async function fetchRestaurantReviews(restaurantName) {
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(restaurantName)}&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`
     
     let searchResponse
+    let searchData
+    
     try {
       searchResponse = await fetch(searchUrl)
+      
+      // Try to get response text first to see what we're dealing with
+      const responseText = await searchResponse.text()
+      
+      try {
+        searchData = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('Failed to parse API response:', responseText)
+        throw new Error(`Invalid API response. Status: ${searchResponse.status}. Response: ${responseText.substring(0, 200)}`)
+      }
+      
     } catch (fetchError) {
+      // Check if it's a network error or CORS error
+      if (fetchError.message && fetchError.message.includes('Failed to fetch')) {
+        console.error('CORS or network error:', fetchError)
+        throw new Error('CORS error: Google Places API may be blocking requests. Check API key restrictions and ensure Places API is enabled in Google Cloud Console.')
+      }
       console.error('Network error:', fetchError)
-      throw new Error('Network error: Unable to connect to Google Places API. Please check your internet connection.')
+      throw new Error(`Network error: ${fetchError.message || 'Unable to connect to Google Places API'}`)
     }
 
     if (!searchResponse.ok) {
-      throw new Error(`API request failed with status ${searchResponse.status}. Please check your API key.`)
+      const errorMsg = searchData?.error_message || `HTTP ${searchResponse.status}`
+      throw new Error(`API request failed: ${errorMsg}. Please check your API key and ensure Places API is enabled.`)
     }
 
-    const searchData = await searchResponse.json()
-
     if (searchData.status === 'REQUEST_DENIED') {
-      throw new Error('API request denied. Please check your Google Places API key and ensure the Places API is enabled.')
+      const errorMsg = searchData.error_message || 'API request denied'
+      console.error('Google Places API Error:', errorMsg)
+      throw new Error(`API request denied: ${errorMsg}. Please check your Google Places API key and ensure the Places API is enabled in Google Cloud Console.`)
     }
     
     if (searchData.status === 'OVER_QUERY_LIMIT') {
       throw new Error('API quota exceeded. Please try again later or check your Google Cloud billing.')
+    }
+    
+    if (searchData.status === 'INVALID_REQUEST') {
+      const errorMsg = searchData.error_message || 'Invalid request'
+      throw new Error(`Invalid request: ${errorMsg}`)
     }
 
     if (searchData.status !== 'OK' || !searchData.results || searchData.results.length === 0) {
@@ -64,18 +88,38 @@ export async function fetchRestaurantReviews(restaurantName) {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,reviews,rating,user_ratings_total&key=${GOOGLE_PLACES_API_KEY}`
     
     let detailsResponse
+    let detailsData
+    
     try {
       detailsResponse = await fetch(detailsUrl)
+      
+      const responseText = await detailsResponse.text()
+      
+      try {
+        detailsData = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('Failed to parse details response:', responseText)
+        throw new Error(`Invalid API response for details. Status: ${detailsResponse.status}`)
+      }
+      
     } catch (fetchError) {
+      if (fetchError.message && fetchError.message.includes('Failed to fetch')) {
+        console.error('CORS or network error:', fetchError)
+        throw new Error('CORS error: Unable to fetch restaurant details. Check API key restrictions.')
+      }
       console.error('Network error:', fetchError)
-      throw new Error('Network error: Unable to fetch restaurant details. Please check your internet connection.')
+      throw new Error(`Network error: ${fetchError.message || 'Unable to fetch restaurant details'}`)
     }
 
     if (!detailsResponse.ok) {
-      throw new Error(`Failed to fetch restaurant details (status ${detailsResponse.status}). Please try again.`)
+      const errorMsg = detailsData?.error_message || `HTTP ${detailsResponse.status}`
+      throw new Error(`Failed to fetch restaurant details: ${errorMsg}`)
     }
-
-    const detailsData = await detailsResponse.json()
+    
+    if (detailsData.status === 'REQUEST_DENIED') {
+      const errorMsg = detailsData.error_message || 'API request denied'
+      throw new Error(`API request denied: ${errorMsg}`)
+    }
 
     if (detailsData.status !== 'OK' || !detailsData.result) {
       throw new Error('Failed to fetch restaurant details.')
