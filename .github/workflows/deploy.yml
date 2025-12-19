@@ -61,17 +61,27 @@ jobs:
           echo ""
           echo "=== Checking for assets ==="
           ls -la dist/assets/ || echo "assets folder NOT FOUND!"
+          if [ -d dist/assets ]; then
+            echo "Assets found:"
+            ls -la dist/assets/
+          fi
           echo ""
           echo "=== Verifying index.html has built bundle (not source) ==="
           if grep -q "/src/main.jsx" dist/index.html; then
             echo "ERROR: index.html still contains source reference!"
+            echo "This means the build failed or wrong files are being deployed!"
             exit 1
           fi
           if grep -q "/Top-Dish/assets/index-" dist/index.html; then
             echo "✓ index.html correctly references built bundle"
           else
-            echo "WARNING: index.html might not have correct bundle reference"
+            echo "ERROR: index.html does not have correct bundle reference!"
+            echo "Build may have failed. Check the build output above."
+            exit 1
           fi
+          echo ""
+          echo "=== Final verification ==="
+          echo "✓ Build verification passed - ready to deploy"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

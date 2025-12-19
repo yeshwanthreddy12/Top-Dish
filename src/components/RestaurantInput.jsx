@@ -20,6 +20,7 @@ function RestaurantInput({ onSubmit, loading }) {
 
       debounceTimer.current = setTimeout(async () => {
         const results = await getAutocompleteSuggestions(restaurantName)
+        console.log('Autocomplete results:', results)
         setSuggestions(results)
         setShowSuggestions(results.length > 0)
         setSelectedIndex(-1)
