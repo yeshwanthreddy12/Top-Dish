@@ -29,6 +29,10 @@ jobs:
 
       - name: Inject API keys into config
         run: |
+          echo "Creating config.js file..."
+          # Remove the template file if it exists
+          rm -f dist/config.js
+          # Create the config file with API keys
           cat > dist/config.js << EOF
           window.APP_CONFIG = {
             GOOGLE_PLACES_API_KEY: '${{ secrets.GOOGLE_PLACES_API_KEY }}',
@@ -36,6 +40,12 @@ jobs:
             LLM_PROVIDER: 'huggingface'
           };
           EOF
+          echo "Config file created. Verifying..."
+          ls -la dist/config.js
+          echo "First few lines of config.js:"
+          head -5 dist/config.js
+          echo "Checking if file exists in dist:"
+          find dist -name "config.js" -type f
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
