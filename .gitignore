@@ -4,4 +4,5 @@ dist
 .env.local
 .DS_Store
 public/config.js
+dist/config.js
 
