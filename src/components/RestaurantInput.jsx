@@ -11,18 +11,51 @@ function RestaurantInput({ onSubmit, loading }) {
     }
   }
 
+  const exampleRestaurants = [
+    'The Cheesecake Factory, New York',
+    'Olive Garden, Los Angeles',
+    'Red Lobster, Chicago',
+    'Outback Steakhouse, Miami'
+  ]
+
+  const handleExampleClick = (example) => {
+    setRestaurantName(example)
+  }
+
   return (
     <div className="restaurant-input">
       <h2>Find Top Dishes</h2>
-      <p className="subtitle">Enter the name of a restaurant to discover its most popular dishes</p>
+      <p className="subtitle">Discover the most loved dishes at any restaurant</p>
       
+      <div className="instructions">
+        <p className="instruction-text">
+          <strong>How to search:</strong> Enter the restaurant name, and optionally include the city or location for better results.
+        </p>
+        <p className="instruction-examples">
+          <strong>Examples:</strong>
+        </p>
+        <div className="example-buttons">
+          {exampleRestaurants.map((example, index) => (
+            <button
+              key={index}
+              type="button"
+              className="example-btn"
+              onClick={() => handleExampleClick(example)}
+              disabled={loading}
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="input-form">
         <div className="input-group">
           <input
             type="text"
             value={restaurantName}
             onChange={(e) => setRestaurantName(e.target.value)}
-            placeholder="e.g., The Cheesecake Factory, New York"
+            placeholder="Restaurant name, City (e.g., McDonald's, San Francisco)"
             className="restaurant-input-field"
             disabled={loading}
             required
@@ -35,6 +68,9 @@ function RestaurantInput({ onSubmit, loading }) {
             {loading ? 'Searching...' : 'Search'}
           </button>
         </div>
+        <p className="input-hint">
+          💡 Tip: Include the city name for more accurate results (e.g., "Pizza Hut, Boston")
+        </p>
       </form>
 
       {loading && (
