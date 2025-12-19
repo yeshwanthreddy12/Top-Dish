@@ -1,0 +1,9 @@
+// Local development config template
+// Copy this to config.js and fill in your API keys for local testing
+// Or use .env file with VITE_ prefixed variables
+window.APP_CONFIG = {
+  GOOGLE_PLACES_API_KEY: '',
+  HUGGINGFACE_API_KEY: '',
+  LLM_PROVIDER: 'huggingface'
+};
+
