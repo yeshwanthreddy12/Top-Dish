@@ -4,9 +4,21 @@
  * Easily extensible to OpenAI
  */
 
-const HUGGINGFACE_API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
-const LLM_PROVIDER = import.meta.env.VITE_LLM_PROVIDER || 'huggingface' // 'huggingface' or 'openai'
+// Get API keys from runtime config, localStorage, or build-time env
+function getConfigValue(key, defaultValue = '') {
+  if (typeof window !== 'undefined' && window.APP_CONFIG?.[key]) {
+    return window.APP_CONFIG[key]
+  }
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(key)
+    if (stored) return stored
+  }
+  return import.meta.env[`VITE_${key}`] || defaultValue
+}
+
+const HUGGINGFACE_API_KEY = getConfigValue('HUGGINGFACE_API_KEY')
+const OPENAI_API_KEY = getConfigValue('OPENAI_API_KEY')
+const LLM_PROVIDER = getConfigValue('LLM_PROVIDER') || 'huggingface'
 
 /**
  * Main LLM service interface

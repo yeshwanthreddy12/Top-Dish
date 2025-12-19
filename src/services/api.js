@@ -1,6 +1,18 @@
 import { llmService } from './llmService'
 
-const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY
+// Get API key from runtime config, localStorage, or build-time env
+function getGooglePlacesApiKey() {
+  if (typeof window !== 'undefined' && window.APP_CONFIG?.GOOGLE_PLACES_API_KEY) {
+    return window.APP_CONFIG.GOOGLE_PLACES_API_KEY
+  }
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('GOOGLE_PLACES_API_KEY')
+    if (stored) return stored
+  }
+  return import.meta.env.VITE_GOOGLE_PLACES_API_KEY
+}
+
+const GOOGLE_PLACES_API_KEY = getGooglePlacesApiKey()
 
 /**
  * Fetch restaurant data and reviews from Google Places API
